@@ -322,6 +322,12 @@ int ambi_enc_getOutputOrder(void* const hAmbi)
     return (int)pData->order;
 }
 
+float ambi_enc_getSourceGain(void* const hAmbi, int index)
+{
+    ambi_enc_data *pData = (ambi_enc_data*)(hAmbi);
+    return pData->src_gains[index];
+}
+
 float ambi_enc_getSourceAzi_deg(void* const hAmbi, int index)
 {
     ambi_enc_data *pData = (ambi_enc_data*)(hAmbi);

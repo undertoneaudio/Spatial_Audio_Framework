@@ -199,6 +199,9 @@ float ambi_enc_getSourceAzi_deg(void* const hAmbi, int index);
 /** Returns the elevation for a specific source, in DEGREES */
 float ambi_enc_getSourceElev_deg(void* const hAmbi, int index);
 
+/** Returns the sorurce's gain */
+float ambi_enc_getSourceGain(void* const hAmbi, int index);
+
 /** Returns the number of input signals/sources to encode */
 int ambi_enc_getNumSources(void* const hAmbi);
 
