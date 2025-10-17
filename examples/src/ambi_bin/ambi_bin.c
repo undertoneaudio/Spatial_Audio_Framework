@@ -79,6 +79,7 @@ void ambi_bin_create
     pData->fs = 48000;
     pData->firstInit = 1;
     pData->hSTFT = NULL;
+    pData->afLowDelayMode = 0; /* default: normal latency */
     pData->SHFrameTD = (float**)malloc2d(MAX_NUM_SH_SIGNALS, AMBI_BIN_FRAME_SIZE, sizeof(float));
     pData->binFrameTD = (float**)malloc2d(NUM_EARS, AMBI_BIN_FRAME_SIZE, sizeof(float));
     pData->SHframeTF = (float_complex***)malloc3d(HYBRID_BANDS, MAX_NUM_SH_SIGNALS, TIME_SLOTS, sizeof(float_complex));
@@ -195,12 +196,15 @@ void ambi_bin_initCodec
     order = pData->new_order;
     nSH = (order+1)*(order+1);
     if(pData->hSTFT==NULL)
-        afSTFT_create(&(pData->hSTFT), nSH, NUM_EARS, HOP_SIZE, 0, 1, AFSTFT_BANDS_CH_TIME);
+        afSTFT_create(&(pData->hSTFT), nSH, NUM_EARS, HOP_SIZE, pData->afLowDelayMode, 1, AFSTFT_BANDS_CH_TIME);
     else if(pData->nSH != nSH) {/* Or change the number of channels */
         afSTFT_channelChange(pData->hSTFT, nSH, NUM_EARS);
         afSTFT_clearBuffers(pData->hSTFT);
     }
     pData->nSH = nSH;
+
+    /* update current STFT processing delay in samples */
+    pData->afSTFTdelay = afSTFT_getProcDelay(pData->hSTFT);
     
     if(pData->reinit_hrtfsFLAG){
         /* load sofa file or default hrir data */
@@ -688,6 +692,23 @@ void ambi_bin_setRPYflag(void* const hAmbi, int newState)
 int ambi_bin_getFrameSize(void)
 {
     return AMBI_BIN_FRAME_SIZE;
+}
+
+void ambi_bin_setLowDelayMode(void* const hAmbi, int lowDelay)
+{
+    ambi_bin_data *pData = (ambi_bin_data*)(hAmbi);
+    const int newVal = lowDelay ? 1 : 0;
+    if (pData->afLowDelayMode != newVal) {
+        pData->afLowDelayMode = newVal;
+        ambi_bin_setCodecStatus(hAmbi, CODEC_STATUS_NOT_INITIALISED);
+    }
+}
+
+float ambi_bin_getLatencyMs(void* const hAmbi)
+{
+    ambi_bin_data *pData = (ambi_bin_data*)(hAmbi);
+    if (pData->fs <= 0) return 0.0f;
+    return 1000.0f * ((float)pData->afSTFTdelay) / (float)pData->fs;
 }
 
 CODEC_STATUS ambi_bin_getCodecStatus(void* const hAmbi)

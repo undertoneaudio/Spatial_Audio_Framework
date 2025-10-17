@@ -130,6 +130,7 @@ typedef struct _ambi_bin
     float_complex*** binframeTF;    /**< Output binaural signals in the time-frequency domain; #HYBRID_BANDS x #NUM_EARS x #TIME_SLOTS */
     void* hSTFT;                    /**< afSTFT handle */
     int afSTFTdelay;                /**< for host delay compensation */
+    int afLowDelayMode;             /**< 1: low-delay STFT; 0: normal */
     float freqVector[HYBRID_BANDS]; /**< frequency vector for time-frequency transform, in Hz */
      
     /* our codec configuration */

@@ -377,6 +377,12 @@ AMBI_BIN_DECODING_METHODS ambi_bin_getDecodingMethod(void* const hAmbi);
  */
 char* ambi_bin_getSofaFilePath(void* const hAmbi);
 
+/** Enables (1) or disables (0) low-delay STFT processing mode. Triggers re-init. */
+void ambi_bin_setLowDelayMode(void* const hAmbi, int lowDelay);
+
+/** Returns current processing latency in milliseconds (uses current fs). */
+float ambi_bin_getLatencyMs(void* const hAmbi);
+
 /**
  * Returns the Ambisonic channel ordering convention currently being used to
  * decode with, which should match the convention employed by the input signals
