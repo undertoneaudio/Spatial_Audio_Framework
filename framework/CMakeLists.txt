@@ -40,8 +40,13 @@ message("
 message(STATUS "Configuring the Spatial_Audio_Framework (SAF):")
 
 if(SAF_ENABLE_SIMD) # before declaring project, set compilation flags for SIMD support
-    set(CMAKE_CXX_FLAGS "${CMAKE_C_FLAGS}   -march=native" CACHE STRING "Default C options"   FORCE)
-    set(CMAKE_C_FLAGS   "${CMAKE_CXX_FLAGS} -march=native" CACHE STRING "Default CXX options" FORCE)
+    foreach(_lang C CXX)
+        set(_flag_var "CMAKE_${_lang}_FLAGS")
+        string(FIND " ${${_flag_var}} " " -march=native " _has_march)
+        if(_has_march EQUAL -1)
+            set(${_flag_var} "${${_flag_var}} -march=native" CACHE STRING "Default ${_lang} options" FORCE)
+        endif()
+    endforeach()
 endif()
 
 project(saf VERSION ${SAF_VERSION} LANGUAGES C)
