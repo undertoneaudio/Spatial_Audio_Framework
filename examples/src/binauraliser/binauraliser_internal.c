@@ -410,7 +410,7 @@ void binauraliser_initTFT
         afSTFT_create(&(pData->hSTFT), pData->new_nSources, NUM_EARS, HOP_SIZE, 0, 1, AFSTFT_BANDS_CH_TIME);
     else if(pData->new_nSources!=pData->nSources){
         afSTFT_channelChange(pData->hSTFT, pData->new_nSources, NUM_EARS);
-        afSTFT_clearBuffers(pData->hSTFT);
+        // afSTFT_clearBuffers(pData->hSTFT);   // Dynamic sources
     }
     pData->nSources = pData->new_nSources;
 }
