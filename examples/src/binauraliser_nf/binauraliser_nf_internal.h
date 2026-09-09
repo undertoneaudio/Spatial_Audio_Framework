@@ -130,6 +130,11 @@ typedef struct _binauraliserNF {
 
     /* End copied _binauraliser struct members. The following are unique to the _binauraliserNF struct */
 
+    /* Keys for the existing per-source hrtf_interp buffers; -1 means invalid.
+     * Codec/frequency-grid reinitialisation invalidates every key. */
+    int hrtf_interpLookupIndex[MAX_NUM_INPUTS];
+    INTERP_MODES hrtf_interpMode[MAX_NUM_INPUTS];
+
     float b_dvf[MAX_NUM_INPUTS][NUM_EARS][2];                   /**< shelf IIR numerator coefficients for each input, left and right. */
     float a_dvf[MAX_NUM_INPUTS][NUM_EARS][2];                   /**< shelf IIR denominator coefficients for each input, left and right. */
     float dvfmags[MAX_NUM_INPUTS][NUM_EARS][HYBRID_BANDS];      /**< DVF filter frequency band magnitudes. */

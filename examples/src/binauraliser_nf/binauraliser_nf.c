@@ -128,6 +128,8 @@ void binauraliserNF_create /* FREQUENCY DOMAIN version */
     pData->reInitHRTFsAndGainTables = 1;
     for(int ch = 0; ch < MAX_NUM_INPUTS; ch++) {
         pData->recalc_hrtf_interpFLAG[ch] = 1;
+        pData->hrtf_interpLookupIndex[ch] = -1;
+        pData->hrtf_interpMode[ch] = INTERP_TRI;
         pData->recalc_dvfCoeffFLAG[ch] = 1;
         pData->src_gains[ch] = 1.f;
     }
@@ -180,7 +182,13 @@ void binauraliserNF_init
     void * const hBin, int sampleRate
 )
 {
+    binauraliserNF_data *pData = (binauraliserNF_data*)(hBin);
     binauraliser_init(hBin, sampleRate);
+    /* The frequency vector is an interpolation input in phase-simplified mode. */
+    for (int ch = 0; ch < MAX_NUM_INPUTS; ch++) {
+        pData->hrtf_interpLookupIndex[ch] = -1;
+        pData->recalc_hrtf_interpFLAG[ch] = 1;
+    }
 }
 
 /* NOTE: This function is a copy of binauraliser_initCodec.
@@ -195,7 +203,7 @@ void binauraliserNF_initCodec
     void* const hBin
 )
 {
-    binauraliser_data *pData = (binauraliser_data*)(hBin);
+    binauraliserNF_data *pData = (binauraliserNF_data*)(hBin);
     
     if (pData->codecStatus != CODEC_STATUS_NOT_INITIALISED)
         return; /* re-init not required, or already happening */
@@ -220,6 +228,13 @@ void binauraliserNF_initCodec
         pData->reInitHRTFsAndGainTables = 0;
     }
     
+    /* HRIR/table rebuilds and source-count reconfiguration invalidate all slots,
+     * including inactive ones that may be reused later. */
+    for (int ch = 0; ch < MAX_NUM_INPUTS; ch++) {
+        pData->hrtf_interpLookupIndex[ch] = -1;
+        pData->recalc_hrtf_interpFLAG[ch] = 1;
+    }
+
     /* done! */
     strcpy(pData->progressBarText,"Done!");
     pData->progressBar0_1 = 1.0f;
@@ -305,12 +320,20 @@ void binauraliserNF_process /* FREQ DOMAIN version */
                     pData->src_dirs_cur[ch][0] = pData->src_dirs_deg[ch][0];
                     pData->src_dirs_cur[ch][1] = pData->src_dirs_deg[ch][1];
                 }
-                binauraliser_interpHRTFs(hBin, pData->interpMode, pData->src_dirs_cur[ch][0], pData->src_dirs_cur[ch][1], pData->hrtf_interp[ch]);
+                const INTERP_MODES mode = pData->interpMode;
+                const int lookupIndex = binauraliser_getHRTFLookupIndex(hBin, pData->src_dirs_cur[ch][0], pData->src_dirs_cur[ch][1]);
+                if (lookupIndex != pData->hrtf_interpLookupIndex[ch] || mode != pData->hrtf_interpMode[ch]) {
+                    binauraliser_interpHRTFs(hBin, mode, pData->src_dirs_cur[ch][0], pData->src_dirs_cur[ch][1], pData->hrtf_interp[ch]);
+                    pData->hrtf_interpLookupIndex[ch] = lookupIndex;
+                    pData->hrtf_interpMode[ch] = mode;
+                }
                 pData->recalc_hrtf_interpFLAG[ch] = 0;
+                /* DVFs depend on the continuous direction, even within one HRTF cell. */
                 pData->recalc_dvfCoeffFLAG[ch] = 1;
             }
-            /* Update DVF filters with change in direction and/or distance */
-            if (pData->recalc_dvfCoeffFLAG[ch]) {
+            /* Far-field convolution does not use DVFs. Keep skipped filters dirty
+             * so the current direction/distance is evaluated before near-field use. */
+            if (pData->src_dists_m[ch] < ffThresh && pData->recalc_dvfCoeffFLAG[ch]) {
                 rho = pData->src_dists_m[ch] * headRadiusRecip;
                 doaToIpsiInteraural(pData->src_dirs_cur[ch][0], pData->src_dirs_cur[ch][1], &alphaLR[0], NULL);
                 calcDVFCoeffs(alphaLR[0], rho, fs, pData->b_dvf[ch][0], pData->a_dvf[ch][0]);

@@ -153,6 +153,9 @@ typedef struct _binauraliser
 void binauraliser_setCodecStatus(void* const hBin,
                                  CODEC_STATUS newStatus);
 
+/** Returns the exact rounded VBAP lookup index used by HRTF interpolation. */
+int binauraliser_getHRTFLookupIndex(void* const hBin, float azimuth_deg, float elevation_deg);
+
 /**
  * Interpolates between (up to) 3 HRTFs via amplitude-normalised VBAP gains.
  *

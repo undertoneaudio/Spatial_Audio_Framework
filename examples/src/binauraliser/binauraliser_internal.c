@@ -176,6 +176,17 @@ void binauraliser_setCodecStatus(void* const hBin, CODEC_STATUS newStatus)
     pData->codecStatus = newStatus;
 }
 
+int binauraliser_getHRTFLookupIndex(void* const hBin, float azimuth_deg, float elevation_deg)
+{
+    binauraliser_data *pData = (binauraliser_data*)(hBin);
+    const float aziRes = (float)pData->hrtf_vbapTableRes[0];
+    const float elevRes = (float)pData->hrtf_vbapTableRes[1];
+    const int N_azi = (int)(360.0f / aziRes + 0.5f) + 1;
+    const int aziIndex = (int)(matlab_fmodf(azimuth_deg + 180.0f, 360.0f) / aziRes + 0.5f);
+    const int elevIndex = (int)((elevation_deg + 90.0f) / elevRes + 0.5f);
+    return elevIndex * N_azi + aziIndex;
+}
+
 void binauraliser_interpHRTFs
 (
     void* const hBin,
@@ -187,20 +198,15 @@ void binauraliser_interpHRTFs
 {
     binauraliser_data *pData = (binauraliser_data*)(hBin);
     int i, band;
-    int aziIndex, elevIndex, N_azi, idx3d;
+    int idx3d;
     float_complex ipd;
     float_complex weights_cmplx[3], hrtf_fb3[NUM_EARS][3];
-    float aziRes, elevRes, weights[3], itds3[3],  itdInterp;
+    float weights[3], itds3[3],  itdInterp;
     float magnitudes3[HYBRID_BANDS][3][NUM_EARS], magInterp[HYBRID_BANDS][NUM_EARS];
     const float_complex calpha = cmplxf(1.0f, 0.0f), cbeta = cmplxf(0.0f, 0.0f);
      
     /* find closest pre-computed VBAP direction */
-    aziRes = (float)pData->hrtf_vbapTableRes[0];
-    elevRes = (float)pData->hrtf_vbapTableRes[1];
-    N_azi = (int)(360.0f / aziRes + 0.5f) + 1;
-    aziIndex = (int)(matlab_fmodf(azimuth_deg + 180.0f, 360.0f) / aziRes + 0.5f);
-    elevIndex = (int)((elevation_deg + 90.0f) / elevRes + 0.5f);
-    idx3d = elevIndex * N_azi + aziIndex;
+    idx3d = binauraliser_getHRTFLookupIndex(hBin, azimuth_deg, elevation_deg);
     for (i = 0; i < 3; i++)
         weights[i] = pData->hrtf_vbap_gtableComp[idx3d*3 + i];
 
